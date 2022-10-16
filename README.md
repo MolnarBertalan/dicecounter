@@ -1,1 +1,1 @@
-# dice dot counter
+# Dice dot counter algorithm
