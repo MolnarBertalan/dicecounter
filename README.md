@@ -1,1 +1,1 @@
-# dicecounter
+# dice dot counter
