@@ -1,6 +1,5 @@
 import os
 import msvcrt
-import time
 import csv
 import cv2
 import numpy as np
@@ -13,8 +12,8 @@ params = cv2.SimpleBlobDetector_Params()
 params.minThreshold = 0
 params.maxThreshold = 255
 
-#params.filterByArea = True
-#params.minArea = 25
+params.filterByArea = True
+params.minArea = 10
 
 params.filterByCircularity = True
 params.minCircularity = 0.8
@@ -31,11 +30,11 @@ m = 3.8
 
 #Prep files-------------------------------------------
 
-path_in = "C://Users/acer/Pictures/Pictures/"
-path_out =  "C://Users/acer/Pictures/Pictures/file.csv"
+path_in = "***/Pictures/"
+path_out =  "***"
 
 filelist=os.listdir(path_in)
-org = open("C://Users/acer/Pictures/Pictures/org.csv",'w',newline = '')
+org = open("***",'w',newline = '')
 writer_org = csv.writer(org)
 
 fil = open(path_out,'w',newline = '')
@@ -123,33 +122,37 @@ def PrintResults(pic, dice):
     writer_f.writerow(row)
     return row
 
-def Process_img(pic, chk,m):
-    img = OpenImage(pic)
-    BW_img = PreProcess(img)
-    dots = GetDots(BW_img)
-    dice = GetDice(dots,m)
-
-    res = PrintResults(pic, dice)
-
-    if chk:
-        print(res)
-        Overlay(img, dice, dots)
-
-        CheckRes(res)
-
 def CheckRes(res):
     print('Correct? y/n')
     chk = chr(msvcrt.getch()[0]) == 'y'
     res.insert(1,chk)
     writer_org.writerow(res)
+    
+def Process_img(pic, chk,m):
+    img = OpenImage(pic)
+    BW_img = PreProcess(img)
+    dots = GetDots(BW_img)
+    dice = GetDice(dots,m)
+    
+    res = PrintResults(pic, dice)
+
+    if chk:
+        print(res)
+        Overlay(img, dice, dots)
+        CheckRes(res)
 
 #-----------------------------------------------------
 
-print('Write Original info? y/n')
+print('Check Results, and compare? y/n')
 chk = chr(msvcrt.getch()[0]) == 'y'
 
 if chk:
     print('Writing: ' + path_out)
+    print('1. Select window with picture.') 
+    print('2. Press any button to close picture.')
+    print('3. Press y/n to validate result.')
+    
+    header.insert(1,'Correct?')
     writer_org.writerow(header)
 
 for f in filelist:
