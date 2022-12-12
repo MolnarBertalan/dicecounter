@@ -26,22 +26,21 @@ params.minInertiaRatio = 0.8
 
 detector = cv2.SimpleBlobDetector_create(params)
 
-m = 3.8
+SizeFactor = 3.8
 
 #Prep files-------------------------------------------
 
 path_in = "***/Pictures/"
-path_out =  "***"
+path_out =  path_in + "Result.csv"
+path_comp = path_in + "Compare.csv"
 
 filelist=os.listdir(path_in)
-org = open("***",'w',newline = '')
-writer_org = csv.writer(org)
 
-fil = open(path_out,'w',newline = '')
-writer_f = csv.writer(fil)
+Res = open(path_out,'w',newline = '')
+writer_R = csv.writer(Res)
 
 header = ['Picture', 'Number of dice', 'Results:']
-writer_f.writerow(header)
+writer_R.writerow(header)
 
 #-----------------------------------------------------
 
@@ -65,7 +64,7 @@ def GetDots(BW_img):
     dots = detector.detect(BW_img)
     return dots
 
-def GetDice(dots,m):
+def GetDice(dots,Factor):
 
     X = []
     S = []
@@ -78,11 +77,11 @@ def GetDice(dots,m):
     X = np.asarray(X)
     S = np.asarray(S)
 
-    S_fact = max(S)
+    S_corr = max(S)
 
     if len(X) > 0:
         dice = []
-        clustering = cluster.DBSCAN(eps=S_fact*m, min_samples=1).fit(X)
+        clustering = cluster.DBSCAN(eps=S_corr*Factor, min_samples=1).fit(X)
 
         num_dice = max(clustering.labels_) + 1
         for i in range(num_dice):
@@ -117,29 +116,28 @@ def Overlay(img,dice,dots):
 
 def PrintResults(pic, dice):
     row=[d[0] for d in dice]
-    row.insert(0,len(dice))
+    row.insert(0,str(len(dice)) + 'D')
     row.insert(0,pic)
-    writer_f.writerow(row)
+    writer_R.writerow(row)
     return row
-
-def CheckRes(res):
+def PrintCheck(res):
     print('Correct? y/n')
     chk = chr(msvcrt.getch()[0]) == 'y'
     res.insert(1,chk)
-    writer_org.writerow(res)
+    writer_comp.writerow(res)
     
-def Process_img(pic, chk,m):
+def Process_img(pic, chk,Factor):
     img = OpenImage(pic)
     BW_img = PreProcess(img)
     dots = GetDots(BW_img)
-    dice = GetDice(dots,m)
+    dice = GetDice(dots,Factor)
     
     res = PrintResults(pic, dice)
 
     if chk:
         print(res)
         Overlay(img, dice, dots)
-        CheckRes(res)
+        PrintCheck(res)
 
 #-----------------------------------------------------
 
@@ -151,14 +149,17 @@ if chk:
     print('1. Select window with picture.') 
     print('2. Press any button to close picture.')
     print('3. Press y/n to validate result.')
+
+    comp = open(path_comp,'w',newline = '')
+    writer_comp = csv.writer(comp)
     
     header.insert(1,'Correct?')
-    writer_org.writerow(header)
+    writer_comp.writerow(header)
 
 for f in filelist:
     if (f.endswith(".png")):
         print('Processing: ' + f)
-        Process_img(path_in+f, chk, m)
+        Process_img(path_in+f, chk, SizeFactor)
 
 
 
