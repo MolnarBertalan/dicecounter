@@ -6,7 +6,7 @@ import image
 def Init(chk):
 
     global path_in
-    path_in = "C://Users/acer/Pictures/Pictures/"
+    path_in = "***/Pictures/"
 
     global path_out
     path_out =  path_in + "Result.csv"
