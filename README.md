@@ -1,9 +1,27 @@
 # Dobókocka felismerés
 
-### 0. Inicializálás
+A program célja klasszikus 6 oldalú dobókockákról készült képen a pöttyök felismerése, és az egyes kockák elkülönítése.
+
+Az alább ismertetett algoritmust a repositroyban megtalálható 109 képen teszteltem amelyek kölünböző helyzetű, darabszámú kockákról készültek, eltérő hátterek előtt és különböző nagyításban.
+Az eredményt csv fájlokban rögzítettem. Result_True a 100% ban pontos (természetesen emberi) eredményt tartalmazza összehasonlítás érdekében.
+
+A tesztet két módszerrel is elvégeztem, az egyik a pontok egyszerű clustereléssel való csoportosítását végzi. Ennek eredményei a Result_simple fájlban látható.
+
+Később az algoritmust "lépcsős" clustereléssel egészítettem ki, amely fokozatosan növeli a pontok között megengedett távolságot. Ezzel a módszerrrel előbb elkülöníthetőek a 6-os, majd 3-as és 5-ös, 4-es és végül a 2-es 1-es kockák (pontok távolsága alapján). Ennek eredménye a Result_Complex fájl mutatja be.
+
+A feltöltött forráskód csak a "lépcsős" módszert tartalmazza de igen egyszerűen átalakítható az egyszerű működésre.
+
+### 1. Inicializálás
+
+Induláskor a felhasználó választhat, hogy szeretné-e futás közben, képenként ellenőrizni az algoritmus eredményét.
+
+A választól a program több funkciója is függ, ugyanis ha nem, akkor nincs szükség az eredmény megjelítésére és annak ellenőrzésére sem (statisztikák sem készülnek). Ilyenkor elég csak a pöttyök felismerését és a clusterezést elvégezni, majd az eredményeket csv fájlba írni.
+
+Ha a felhasználó szeretné látni az eredményt akkor elő kell készíteni a fenti funkciókhoz szükséges változókat is. Ezért az Init függvény megkapja a felhasználó válaszát egy chk nevű booleanban.
 
 ```
-#main:
+#main.py
+...
 print('Validate results? y/n')
 chk = chr(msvcrt.getch()[0]) == 'y'
 
@@ -17,9 +35,11 @@ writer.writerow(header)
 ...
 ```
 
-### 0.1 Fájlok beolvasása
+### 1.1 Fájlok beolvasása
 
 ```
+#main.py
+...
 def Init(chk):
 
     global path_in
@@ -32,8 +52,20 @@ def Init(chk):
     filelist = [f for f in os.listdir(path_in) if f.endswith(".png")]
     ...
 ```
+Az Init függvény chk-tól függetlenül előkészíti az ellenőrizendő képeket. A képek mappáját megadhatjuk a Path_in változóban. A listába ebben a mappában lévő .png kiterjesztésű képek kerülnek bele. Az algoritmus ezeken az elérési utakon iterál végig.
+
+Az eredmény azonos mappában a path_out változóval meghítározott fájba íródik.
+
+### 1.2 Eredményfájl előkészítése
+
+Az eredményfájl előkészítésénél már számít a chk értéke, ugyanis manuális validálás esetén az eredmény egyel több oszlopot tartalmaz, így a headert ennek megfelelően módosítani kell. Az eredményeket 'writer' objektumon keresztül írjuk az eredményfájlba.
+
+A válasz és a statisztikák készítése érdekében 'chk' tól függően létrehozunk két dictinary-t is.
 
 ```
+#main.py
+...
+def Init(chk):
     ...
     global pic_count
     pic_count = len(filelist)
@@ -60,13 +92,63 @@ def Init(chk):
         "dot":0,
         "clustering":0,   
         "both":0,
+        "unknown":0}
+```
+### 2. Fő ciklus
+
+A képek listájának előkészítése után azokon végigiterálunk, és a Process_img függvény segítségével feldolgozzuk azokat. Az eredények kiírható állapotra hozásáért a PrepResults függvény felel.
+
+chk-tól függően a ciklusban megjelnítjük az eredményt és konzolunk bekérjük az esetlegesen ejtett hiba minőségét. (clustering/detection error)
+
+Az eredményeket writeren keresztül kiírjuk.
+A ciklus végén, ha készült statisztika, azt is az eredmény fájlba írjuk.
+
+```
+#main.py
+...
+if chk: 
+    print('Press y/d/c/b to validate result.')
+    
+for f in filelist:
+    print('Processing: ' + f)
+
+    dots, dice = image.Process_img(path_in+f)
+    res = PrepResults(path_in+f, dice)
+        
+    if chk:
+        image.Overlay(path_in+f, dice, dots)
+        res = CheckResult(res)
+        image.Close()
+
+    writer.writerow(res)
+
+if chk:
+    for key in stats_dic:
+        print(key + ': ' + str(stats_dic[key]))
+        writer.writerow([key + ':,' + str(stats_dic[key])])   
 ```
 
-
-
-### 1. Kép előkészítés
+### 3. Kép előkészítés
 
 ```
+def Process_img(pic):
+    img = OpenImage(pic)
+    BW_img = PreProcess(img)
+
+    #cv2.imshow("image",cv2.resize(BW_img,[400,700],interpolation = cv2.INTER_AREA))
+    #cv2.waitKey(0)
+
+    dots = GetDots(BW_img)
+    dice = GetDice(dots)
+
+    return dots, dice
+```
+
+#Continue here
+
+```
+#image.py
+...
 def OpenImage(path):
     img = cv2.imread(path,1)
     
@@ -91,6 +173,8 @@ def PreProcess(img):
 ### 2. Pöttyök felismerése
 
 ```
+#image.py
+...
 params = cv2.SimpleBlobDetector_Params()
 
 params.minThreshold = 0
@@ -117,6 +201,8 @@ def GetDots(BW_img):
 
 ### 4. Kockák csoportosítása
 ```
+#image.py
+...
 def GetDice(dots):
     dots_next = []
     S = []
@@ -139,6 +225,8 @@ def GetDice(dots):
 #### 4.1 Egyszerű csoportosítás
 
 ```
+#image.py
+...
 def Simple_cluster(dots, dice, Factor):
     if len(dots) > 0:
 
@@ -155,6 +243,8 @@ def Simple_cluster(dots, dice, Factor):
 #### 4.2 Lépcsős csoportosítás
 
 ```
+#image.py
+...
 def Separating_cluster(dots, dice, Factor, criteria):
     dots_rest = []
     if len(dots) > 0:
@@ -176,6 +266,8 @@ def Separating_cluster(dots, dice, Factor, criteria):
     return dice, dots_rest
 ```
 ```
+#image.py
+...
 def GetDice(dots):
     ...
 #6---------------------------------------------------------------------------------------
@@ -212,6 +304,8 @@ def GetDice(dots):
 ### 5. Eredmény grafikus megjelenítése
 
 ```
+#image.py
+...
 def Overlay(pic,dice,dots):
     img = OpenImage(pic)
 
@@ -237,32 +331,25 @@ def Overlay(pic,dice,dots):
 
 ### 6. Eredmény fájlba írása
 
-```
-#main:
-...
-if chk: 
-    print('Press y/d/c/b to validate result.')
-    
-for f in filelist:
-    print('Processing: ' + f)
-
-    dots, dice = image.Process_img(path_in+f)
-    res = PrepResults(path_in+f, dice)
-        
-    if chk:
-        image.Overlay(path_in+f, dice, dots)
-        res = CheckResult(res)
-        image.Close()
-
-    writer.writerow(res)
-
-if chk:
-    for key in stats_dic:
-        print(key + ': ' + str(stats_dic[key]))
-        writer.writerow([key + ':,' + str(stats_dic[key])])   
-```
 
 #### 6.1 Futás közbeni ellenőrzés
+
+```
+#main.py
+...
+def CheckResult(res):
+    print(res)
+    print('Correct?, y = correct, d = dot error, c = clustering error, b = both')
+    print()
+
+    resp = response_dic.get(chr(msvcrt.getch()[0]),"unknown")
+    stats_dic[resp] += 1/pic_count
+    res.insert(1,resp)
+
+    return res
+```
+
+
 ### 7. Sources
 - https://gist.github.com/qgolsteyn/261289d999a8d6288ce8c0b8472e5354
 - https://www.mathworks.com/matlabcentral/answers/248036-how-to-identify-black-dots-on-dice-via-image-processing-matlab
