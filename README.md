@@ -37,6 +37,10 @@ writer.writerow(header)
 
 ### 1.1 Fájlok beolvasása
 
+Az Init függvény chk-tól függetlenül előkészíti az ellenőrizendő képeket. A képek mappáját megadhatjuk a Path_in változóban. A listába ebben a mappában lévő .png kiterjesztésű képek kerülnek bele. Az algoritmus ezeken az elérési utakon iterál végig.
+
+Az eredmény azonos mappában a path_out változóval meghítározott fájba íródik.
+
 ```
 #main.py
 ...
@@ -52,9 +56,6 @@ def Init(chk):
     filelist = [f for f in os.listdir(path_in) if f.endswith(".png")]
     ...
 ```
-Az Init függvény chk-tól függetlenül előkészíti az ellenőrizendő képeket. A képek mappáját megadhatjuk a Path_in változóban. A listába ebben a mappában lévő .png kiterjesztésű képek kerülnek bele. Az algoritmus ezeken az elérési utakon iterál végig.
-
-Az eredmény azonos mappában a path_out változóval meghítározott fájba íródik.
 
 ### 1.2 Eredményfájl előkészítése
 
