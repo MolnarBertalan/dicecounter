@@ -131,22 +131,24 @@ if chk:
 
 ### 3. Kép előkészítés
 
+A képeket egyesével dolgozzuk fel. első lépésként az elérési út segítségével megnyitjuk, majd szürkeárnyalatos képpé, végül adaptív gauss küszöböléssel fekete-fehér képpé alakítjuk.
+
+Mivel a kockákon a pöttyök jól elkülönülnek a kocka színétől, ezzel a módszerrel a pöttyök éle egyértelműen kiemelhető.
+
+![image](https://user-images.githubusercontent.com/77465523/211152238-4e750047-8199-4fbd-a63c-a7c28f8da105.png)
+
+Az előkészített képen előbb a pöttyöket keressük meg, majd a pöttyöket csoportosítva a kockákat azonosítjuk.
+
 ```
 def Process_img(pic):
     img = OpenImage(pic)
     BW_img = PreProcess(img)
-
-    #cv2.imshow("image",cv2.resize(BW_img,[400,700],interpolation = cv2.INTER_AREA))
-    #cv2.waitKey(0)
 
     dots = GetDots(BW_img)
     dice = GetDice(dots)
 
     return dots, dice
 ```
-
-#Continue here
-
 ```
 #image.py
 ...
@@ -171,7 +173,11 @@ def PreProcess(img):
     return BW_img
 ```
 
-### 2. Pöttyök felismerése
+### 4. Pöttyök felismerése
+
+A pontokat OpenCV SimpleBlobDetectorral keresem. A függvény paraméterei között megadható a keresett pötty minimális mérete, És annak formájára is megkötéseket tehetünk. Ezáltal ideális a kockákon lévő többnyire kör alakú pöttyök felismerésére. 
+Az eredményeket látszik, hogy helyes paraméterezéssel a pöttyök 100% pontossággal kerültek felismerésre minden képen.
+A pöttyöket a 'dots' array-ben tárolom amelynek egy eleme a pöttyök közepének koordinátáit, a pötty méretét, és még egyéb tulajdonságait tartalmazza.
 
 ```
 #image.py
@@ -200,7 +206,19 @@ def GetDots(BW_img):
     return dots
 ```
 
-### 4. Kockák csoportosítása
+### 5. Kockák csoportosítása
+
+A pöttyök csoportosítását DBscan módszerrel végeztem, ugyanis ennek a clusterezésnek nem kell megadni a clusterek számát előre. Mivel a kockák száma a képen ismeretlen, ezért a clusterek számát sem tudhatjuk előre. 
+
+DBscan a pontok távolsága alapján csoportosítja azokat. A paraméterek között eps értéke az egy csoportba tartozó pontok közötti maximális távolságot határozza meg.
+Mivel a képek eltérő nagyításúak, ez a távolsák a pöttyök méretétől függ. 
+
+Eps-t tehát dinamikusan, a képen felismert pöttyök közül a legnagyobb méretének függvényében határozom meg. Tapasztalat szerint a 6-os oldalonkét szomszédos pötty távolsága a pötty 1.4-szerese. Ezt az értéket a 'dist' változóban tárolom.
+
+A csoportosításhoz ezután csak a pöttyök helyzete szükséges. Ezt a dots_next array tartalmazza. A dots_6 és dots_rest array-ek a lépcsős clusterezéshez szükségesek.
+
+A clusterezés eredménye, vagyis a kockák a dice array-be íródnak. Ez az array kockánként annak középpontját, és a rajta lévő pöttyök számát tartalmazza.
+
 ```
 #image.py
 ...
@@ -209,11 +227,9 @@ def GetDice(dots):
     S = []
 
     for d in dots:
-        pos = d.pt
-        siz = d.size
         if d != None:
-            dots_next.append(pos)
-            S.append(siz)
+            dots_next.append(d.pt)
+            S.append(d.size)
 
     dist = max(S)*SizeFactor
     dots_next = np.asarray(dots_next)
@@ -223,7 +239,17 @@ def GetDice(dots):
     dice = []
     ...
 ```
-#### 4.1 Egyszerű csoportosítás
+#### 5.1 Egyszerű csoportosítás
+
+Az egyszerű csoportosításnál a pöttyök közötti legnagyobb távolság alapján csoportosítunk , azaz a 2 es oldalon lévő két átellenes pötty közötti távolság az eps paraméter értéke. 
+
+A DBscan a cluster sorszámát jellemző label értéket rendel a pontokhoz. Ez alapján a ciklusban az egyes clusterekbe tartozó pöttyök a 'die' változóba menthetőek.
+
+Ez a az egy kockán lévő pontokat biztosan egy csoportba sorolja, azonban egymáshoz közel lévő kockák esetén két kockát is egybe vehet.
+
+![image](https://user-images.githubusercontent.com/77465523/211154126-52ca783d-97cb-48da-a362-34112a34fa8b.png)
+
+Ez elég sok clusterezési hibához vezethet. Ennek elkerülésére a lépcsős clusterezési módszert mutatom be a következő fejezetben.
 
 ```
 #image.py
@@ -241,7 +267,11 @@ def Simple_cluster(dots, dice, Factor):
     return dice
 ```
 
-#### 4.2 Lépcsős csoportosítás
+#### 5.2 Lépcsős csoportosítás
+
+A lépcsős módszer szintén DBscan módszeren alapul. Az egyetlen változás, hogy itt összesen 5 kétféle (separeting és simple) clusterezési ciklus fut le. 
+
+A szeparáló clusterezés annyiban más, hogy kritériumként megadható, hogy hány pötty legyen egy clusterben. Ezáltal felismerhető például a csak 6-os oldal és elkülöníthető a pöttyökből. A dots_rest a maradék pontokat tartalmazza, amin aztán újabb clusterezés végezhető.
 
 ```
 #image.py
@@ -266,6 +296,22 @@ def Separating_cluster(dots, dice, Factor, criteria):
         dots_rest = np.asarray(dots_rest)
     return dice, dots_rest
 ```
+Az 5 ciklus első lépése a 6-os oldalokon lévő 3-3 pöttyök csoportosítása. Ezek a pöttyök a többinél közelebb állnak egymáshoz, így a maradék pötty (ami nem 6-os oldalon van) a dots_rest ben marad. 
+
+A 6-os oldal azonban 2 clusterből áll még, így ezeken a pöttyökön egy újabb simple clusterezést végzek.
+
+Ezzel a két clusterezéssel tehát kizárólag a 6-os oldalú kockákat szűrtem ki a többi közül.
+
+Ezután a fenti Separating_cluster függvénnyel elkülönítem a 3-as 5-ös kockákat (második legkisebb távolság a pöttyök között, madj a 4-es kockákat.
+A kettesek csoportosítása a maradék pontokból az előző fejezetben leírt Simple_cluster -rel történik.
+
+![image](https://user-images.githubusercontent.com/77465523/211154690-b5be2ab4-8eeb-41a7-a9a2-2248631afeb1.png) ![image](https://user-images.githubusercontent.com/77465523/211154843-4f3ece1c-3641-46ee-8861-4fb8a443ef21.png)
+
+
+Ezzel a clusterezési hibák nagyobbik része kiszűrhető, de közel lévő 4 es vagy 2 es kockákat ez a módszer sem tud elkülöníteni.
+
+![image](https://user-images.githubusercontent.com/77465523/211154790-0ed46b08-5b68-4e67-a7d9-4abbd780c2e0.png) ![image](https://user-images.githubusercontent.com/77465523/211154810-12ac96ff-e4ad-436c-a61d-61ea2028ac64.png)
+
 ```
 #image.py
 ...
@@ -300,9 +346,9 @@ def GetDice(dots):
     return dice
 ```
 
+### 6. Eredmény grafikus megjelenítése
 
-
-### 5. Eredmény grafikus megjelenítése
+A grafikus megjelenítés a manuális ellenőrzés miatt lényeges. A pöttyöket piros körvanallal jeölölöm, a kockák középpontjára, pedig az oldalhoz rendelt pöttyök számát jelenítem meg. A fenti képeken ez látható is.
 
 ```
 #image.py
@@ -330,10 +376,33 @@ def Overlay(pic,dice,dots):
     cv2.waitKey(100)
 ```
 
-### 6. Eredmény fájlba írása
+### 7. Eredmény fájlba írása
 
+Az eredményeket egy Results.csv fájla írom az alábbi formátumban:
 
-#### 6.1 Futás közbeni ellenőrzés
+Az első sor a képek számát tartalmazza, ezt követi egy header, majd az egyes képek eredményei. Pl.:
+
+>Count_of_images:;109;;;;;;;;;;
+>Picture;Response;Number_of_dice;Results;;;;;;;;
+>C://Users/acer/Pictures/Pictures/Screenshot_20221113-162407.png;correct;4D;3;5;4;1;;;;;
+
+A második oszlop 'Response' a chk (manuális ellenőrzés) től függően kerül beillesztésre.
+
+Az utolsó sorok pedig a statisztikákat tartalmazzák (ha készült) pl.:
+
+>correct:;0,76146789;;;;;;;;;;
+>dot:;0;;;;;;;;;;
+>clustering:;0,23853211;;;;;;;;;;
+>both:;0;;;;;;;;;;
+>unknown:;0;;;;;;;;;;
+
+#### 7.1 Futás közbeni ellenőrzés
+
+Ha a felhasználó ellenőrizni szeretné az eredményeket, akkor a program megjelínti azokat az Overlay függvénnyel majd vár a felhasználó válaszára a hiba minőségével kapcsolatban. 
+
+>Correct?, y = correct, d = dot error, c = clustering error, b = both
+
+A válasz az eredmény sorban, és a stat_dic ben tárolódik.
 
 ```
 #main.py
@@ -349,9 +418,16 @@ def CheckResult(res):
 
     return res
 ```
+8. Összegzés.
 
+A SimpleBlolbDetection és a Dbscan használatával a dobókockák elég jó pontossággal ismerhetőek fel. A pöttyök Gauss küszöbölés, és SimpleBlolbDetection megfelelő paraméterezésével 100% os pontossággal meghatározhatóak.
 
-### 7. Sources
+Az egyszerő DBscan módszer a clusterezést a 109 képen 76% pontossággal végezte el. Ezzel szemben a lépcsős clusterezés ugyanezen a tesztmappán 95% pontosságot ért el.
+Lásd Result_Simple és Result_Complex fájlokban.
+
+A SimpleBlolbDetection és a Dbscan viszonylag egyszerűen használható más, hasonló feladatokra is.
+
+### 8. Források
 - https://gist.github.com/qgolsteyn/261289d999a8d6288ce8c0b8472e5354
 - https://www.mathworks.com/matlabcentral/answers/248036-how-to-identify-black-dots-on-dice-via-image-processing-matlab
 - https://www.davidepesce.com/2019/09/06/dice-reader-part-1/
