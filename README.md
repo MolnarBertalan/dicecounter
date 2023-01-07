@@ -61,7 +61,7 @@ def Init(chk):
 
 Az eredményfájl előkészítésénél már számít a chk értéke, ugyanis manuális validálás esetén az eredmény egyel több oszlopot tartalmaz, így a headert ennek megfelelően módosítani kell. Az eredményeket 'writer' objektumon keresztül írjuk az eredményfájlba.
 
-A válasz és a statisztikák készítése érdekében 'chk' tól függően létrehozunk két dictinary-t is.
+A válasz és a statisztikák készítése érdekében 'chk' tól függően létrehozok két dictinary-t is.
 
 ```
 #main.py
@@ -97,9 +97,9 @@ def Init(chk):
 ```
 ### 2. Fő ciklus
 
-A képek listájának előkészítése után azokon végigiterálunk, és a Process_img függvény segítségével feldolgozzuk azokat. Az eredények kiírható állapotra hozásáért a PrepResults függvény felel.
+A képek listájának előkészítése után azokon iterálok, és a Process_img függvény segítségével feldolgozzuk azokat. Az eredények kiírható állapotra hozásáért a PrepResults függvény felel.
 
-chk-tól függően a ciklusban megjelnítjük az eredményt és konzolunk bekérjük az esetlegesen ejtett hiba minőségét. (clustering/detection error)
+chk-tól függően a ciklusban megjelnítjük az eredményt és konzolon bekérjük az esetlegesen ejtett hiba minőségét. (clustering/detection error)
 
 Az eredményeket writeren keresztül kiírjuk.
 A ciklus végén, ha készült statisztika, azt is az eredmény fájlba írjuk.
@@ -213,7 +213,7 @@ A pöttyök csoportosítását DBscan módszerrel végeztem, ugyanis ennek a clu
 DBscan a pontok távolsága alapján csoportosítja azokat. A paraméterek között eps értéke az egy csoportba tartozó pontok közötti maximális távolságot határozza meg.
 Mivel a képek eltérő nagyításúak, ez a távolsák a pöttyök méretétől függ. 
 
-Eps-t tehát dinamikusan, a képen felismert pöttyök közül a legnagyobb méretének függvényében határozom meg. Tapasztalat szerint a 6-os oldalonkét szomszédos pötty távolsága a pötty 1.4-szerese. Ezt az értéket a 'dist' változóban tárolom.
+Eps-t tehát dinamikusan, a képen felismert pöttyök közül a legnagyobb méretének függvényében határozom meg. Tapasztalat szerint a 6-os oldalankét szomszédos pötty távolsága a pötty 1.4-szerese. Ezt az értéket a 'dist' változóban tárolom.
 
 A csoportosításhoz ezután csak a pöttyök helyzete szükséges. Ezt a dots_next array tartalmazza. A dots_6 és dots_rest array-ek a lépcsős clusterezéshez szükségesek.
 
@@ -241,7 +241,7 @@ def GetDice(dots):
 ```
 #### 5.1 Egyszerű csoportosítás
 
-Az egyszerű csoportosításnál a pöttyök közötti legnagyobb távolság alapján csoportosítunk , azaz a 2 es oldalon lévő két átellenes pötty közötti távolság az eps paraméter értéke. 
+Az egyszerű csoportosításnál a pöttyök közötti legnagyobb távolság alapján csoportosítok, azaz a 2 es oldalon lévő két átellenes pötty közötti távolság az eps paraméter értéke. 
 
 A DBscan a cluster sorszámát jellemző label értéket rendel a pontokhoz. Ez alapján a ciklusban az egyes clusterekbe tartozó pöttyök a 'die' változóba menthetőek.
 
@@ -306,7 +306,6 @@ Ezután a fenti Separating_cluster függvénnyel elkülönítem a 3-as 5-ös koc
 A kettesek csoportosítása a maradék pontokból az előző fejezetben leírt Simple_cluster -rel történik.
 
 ![image](https://user-images.githubusercontent.com/77465523/211154690-b5be2ab4-8eeb-41a7-a9a2-2248631afeb1.png) ![image](https://user-images.githubusercontent.com/77465523/211154843-4f3ece1c-3641-46ee-8861-4fb8a443ef21.png)
-
 
 Ezzel a clusterezési hibák nagyobbik része kiszűrhető, de közel lévő 4 es vagy 2 es kockákat ez a módszer sem tud elkülöníteni.
 
