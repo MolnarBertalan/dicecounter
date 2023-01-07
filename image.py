@@ -92,11 +92,9 @@ def GetDice(dots):
     S = []
 
     for d in dots:
-        pos = d.pt
-        siz = d.size
         if d != None:
-            dots_next.append(pos)
-            S.append(siz)
+            dots_next.append(d.pt)
+            S.append(d.size)
 
     dist = max(S)*SizeFactor
     dots_next = np.asarray(dots_next)
