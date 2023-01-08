@@ -10,7 +10,7 @@ def Init():
     global path_in
     path_in = input()
     if path_in == '':
-        path_in = 'C:/Users/acer/Pictures/Pictures/'
+        path_in = '***'
 
     global path_out
     path_out =  path_in + "Result.csv"
