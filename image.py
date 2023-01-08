@@ -1,3 +1,4 @@
+from math import sqrt
 import cv2
 import numpy as np
 from sklearn import cluster
@@ -10,7 +11,7 @@ params.minThreshold = 0
 params.maxThreshold = 255
 
 params.filterByArea = True
-params.minArea = 10
+params.minArea = 30
 
 params.filterByCircularity = True
 params.minCircularity = 0.6
@@ -41,6 +42,9 @@ def PreProcess(img):
     BW_img = cv2.adaptiveThreshold(Gray_img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
             cv2.THRESH_BINARY_INV,9,20)
 
+    #cv2.imshow("image",cv2.resize(BW_img,[400,700],interpolation = cv2.INTER_AREA))
+    #cv2.waitKey(0)
+
     if BW_img is None: 
         print("Error: Cannot process image")
         return -1
@@ -52,6 +56,14 @@ def GetDots(BW_img):
     dots = detector.detect(BW_img)
     return dots
 
+def GetMinDist(dots):
+    dist = []
+    for p1 in dots:
+        for p2 in dots:
+            if p1 != p2:
+                d = [p1[0] - p2[0],p1[1] - p2[1]]
+                dist.append(sqrt(d[0] * d[0] + d[1] * d[1]))
+    return min(dist)
 
 def Simple_cluster(dots, dice, Factor):
     if len(dots) > 0:
@@ -135,10 +147,6 @@ def GetDice(dots):
 def Process_img(pic):
     img = OpenImage(pic)
     BW_img = PreProcess(img)
-
-    #cv2.imshow("image",cv2.resize(BW_img,[400,700],interpolation = cv2.INTER_AREA))
-    #cv2.waitKey(0)
-
     dots = GetDots(BW_img)
     dice = GetDice(dots)
 

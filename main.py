@@ -3,24 +3,41 @@ import msvcrt
 import csv
 import image
 
-def Init(chk):
+def Init():
+
+    print('Specify folder:')
 
     global path_in
-    path_in = "***/Pictures/"
+    path_in = input()
+    if path_in == '':
+        path_in = 'C:/Users/acer/Pictures/Pictures/'
 
     global path_out
     path_out =  path_in + "Result.csv"
 
     global filelist
-    filelist = [f for f in os.listdir(path_in) if f.endswith(".png")]
+    try:
+        filelist = [f for f in os.listdir(path_in) if f.endswith(".png")]
+    except:
+        exit()
 
     global pic_count
     pic_count = len(filelist)
+    print("Count_of_images: " + str(pic_count))
+
+    if pic_count == 0:
+        exit()
 
     global writer
     writer = csv.writer(open(path_out,'w',newline = ''))
+    print('Writing: ' + path_out) 
+    print()
 
-    global header
+    print('Validate results? y/n')
+    global chk
+    chk = chr(msvcrt.getch()[0]) == 'y'
+    print(chk)
+    
     header = ['Picture', 'Number_of_dice', 'Results']
 
     if chk:
@@ -41,6 +58,12 @@ def Init(chk):
         "both":0,
         "unknown":0}
 
+        print('Press y/d/c/b to validate result.')
+
+    writer.writerow(["Count_of_images:," + str(pic_count)])
+    writer.writerow(header)   
+    print()
+
 #------------------------------------------------------------
 
 def PrepResults(pic, dice):
@@ -53,9 +76,10 @@ def PrepResults(pic, dice):
 def CheckResult(res):
     print(res)
     print('Correct?, y = correct, d = dot error, c = clustering error, b = both')
-    print()
-
+    
     resp = response_dic.get(chr(msvcrt.getch()[0]),"unknown")
+    print(resp)
+    print()
     stats_dic[resp] += 1/pic_count
     res.insert(1,resp)
 
@@ -63,20 +87,7 @@ def CheckResult(res):
 
 #------------------------------------------------------------
 
-print('Validate results? y/n')
-chk = chr(msvcrt.getch()[0]) == 'y'
-
-Init(chk)
-
-print("Count_of_images: " + str(pic_count))
-
-if chk: 
-    print('Press y/d/c/b to validate result.')
-
-print('Writing: ' + path_out) 
-writer.writerow(["Count_of_images:," + str(pic_count)])
-writer.writerow(header)   
-
+Init()
     
 for f in filelist:
     print('Processing: ' + f)
